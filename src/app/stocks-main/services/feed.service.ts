@@ -118,7 +118,7 @@ export class FeedService {
     // Stop any existing polling
     this.stopPolling();
 
-    this.pollingMode = PollingMode.SINGLE;
+    this.pollingMode = PollingMode.ALL;
 
     // Initial fetch
     this.feedApiService

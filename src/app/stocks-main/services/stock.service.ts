@@ -5,18 +5,11 @@ import { StockApiService } from './stock-api.service';
 
 /**
  * Facade service responsible for managing stock state and business logic.
- * Delegates HTTP operations to StockApiService.
  *
  * This service acts as the "brain" for stock-related operations:
  * - Caches stock data in signals for reactive updates
  * - Provides quick lookups via Map structure
  * - Exposes read-only signals for consumers
- *
- * @example
- * // Fetching and accessing stocks:
- * stockService.fetchStocks().subscribe();
- * const allStocks = stockService.stocks(); // Signal<Stock[]>
- * const apple = stockService.getStockById(1); // Stock | undefined
  */
 @Injectable({
   providedIn: 'root',

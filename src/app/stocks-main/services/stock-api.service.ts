@@ -5,7 +5,6 @@ import { Stock } from '../interfaces/stock.interface';
 
 /**
  * API service responsible for making HTTP calls to the Stock endpoint.
- * This service handles only data fetching without any state management.
  *
  * @example
  * // Fetching all stocks:
@@ -25,12 +24,6 @@ export class StockApiService {
    *
    * @returns Observable of Stock array
    *
-   * @example
-   * // Returns:
-   * // [
-   * //   { Id: 1, Name: 'Apple', Symbol: 'AAPL', PrecisionDigit: 2 },
-   * //   { Id: 2, Name: 'Google', Symbol: 'GOOGL', PrecisionDigit: 4 }
-   * // ]
    */
   getStocks(): Observable<Stock[]> {
     return this.http.get<Stock[]>(this.apiUrl);
