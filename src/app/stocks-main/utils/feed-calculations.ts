@@ -142,6 +142,67 @@ export function calculateFeedMetrics(feeds: NormalizedFeed[]): FeedWithCalculati
 }
 
 /**
+ * Calculates the daily buy rate change percentage between the first and latest feed.
+ * Formula: ((latestBuyPrice - firstBuyPrice) / firstBuyPrice) * 100
+ *
+ * @param feeds - Array of normalized feeds for a stock (newest first)
+ * @returns The percentage change, or 0 if calculation is not possible
+ *
+ * @example
+ * // Price increase over session
+ * const feeds = [
+ *   { buyPrice: 110.00, sellPrice: 109.50, stockId: 1, timestamp: new Date() },  // latest
+ *   { buyPrice: 105.00, sellPrice: 104.50, stockId: 1, timestamp: new Date() },
+ *   { buyPrice: 100.00, sellPrice: 99.50, stockId: 1, timestamp: new Date() }    // first
+ * ];
+ * calculateDailyBuyRateChange(feeds)  // Returns: 10.00 (10% increase from 100 to 110)
+ *
+ * @example
+ * // Price decrease over session
+ * const feeds = [
+ *   { buyPrice: 90.00, sellPrice: 89.50, stockId: 1, timestamp: new Date() },   // latest
+ *   { buyPrice: 100.00, sellPrice: 99.50, stockId: 1, timestamp: new Date() }   // first
+ * ];
+ * calculateDailyBuyRateChange(feeds)  // Returns: -10.00 (10% decrease from 100 to 90)
+ *
+ * @example
+ * // Single feed (no change)
+ * const singleFeed = [
+ *   { buyPrice: 100.00, sellPrice: 99.50, stockId: 1, timestamp: new Date() }
+ * ];
+ * calculateDailyBuyRateChange(singleFeed)  // Returns: 0
+ *
+ * @example
+ * // Empty feeds array
+ * calculateDailyBuyRateChange([])  // Returns: 0
+ *
+ * @example
+ * // Feeds with null buy prices
+ * const feeds = [
+ *   { buyPrice: null, sellPrice: 99.50, stockId: 1, timestamp: new Date() },
+ *   { buyPrice: 100.00, sellPrice: 99.50, stockId: 1, timestamp: new Date() }
+ * ];
+ * calculateDailyBuyRateChange(feeds)  // Returns: 0 (cannot calculate with null)
+ */
+export function calculateDailyBuyRateChange(feeds: NormalizedFeed[]): number {
+  if (feeds.length < 2) {
+    return 0;
+  }
+
+  const latestFeed = feeds[0];           // newest first
+  const firstFeed = feeds[feeds.length - 1];  // oldest last
+
+  const latestBuyPrice = latestFeed.buyPrice;
+  const firstBuyPrice = firstFeed.buyPrice;
+
+  if (latestBuyPrice === null || firstBuyPrice === null || firstBuyPrice === 0) {
+    return 0;
+  }
+
+  return ((latestBuyPrice - firstBuyPrice) / firstBuyPrice) * 100;
+}
+
+/**
  * Parses a price value, handling special cases like "-Infinity".
  *
  * @param value - The price value as a number or string

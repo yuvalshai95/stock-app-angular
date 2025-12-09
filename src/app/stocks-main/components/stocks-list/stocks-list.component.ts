@@ -4,9 +4,12 @@ import { TableModule, TableRowSelectEvent } from 'primeng/table';
 import { STOCKS_LIST_COLUMNS } from '../../constant/stocks-list-table.config';
 import { StockWithLatestFeed } from '../../interfaces/stock.interface';
 import { TableColumn } from '../../interfaces/table-column.interface';
+import { ChangeClassPipe } from '../../pipes/change-class.pipe';
+import { FormatPercentPipe } from '../../pipes/format-percent.pipe';
 import { FormatPricePipe } from '../../pipes/format-price.pipe';
 import { FeedService } from '../../services/feed.service';
 import { StockService } from '../../services/stock.service';
+import { calculateDailyBuyRateChange } from '../../utils/feed-calculations';
 import { getNestedValue } from '../../utils/object.utils';
 
 /**
@@ -19,7 +22,7 @@ import { getNestedValue } from '../../utils/object.utils';
   templateUrl: './stocks-list.component.html',
   styleUrl: './stocks-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TableModule, FormatPricePipe],
+  imports: [TableModule, FormatPricePipe, FormatPercentPipe, ChangeClassPipe],
 })
 export class StocksListComponent implements OnInit {
   private readonly stockService = inject(StockService);
@@ -30,15 +33,20 @@ export class StocksListComponent implements OnInit {
   /** Table column configuration */
   readonly columns: TableColumn<StockWithLatestFeed>[] = STOCKS_LIST_COLUMNS;
 
-  /** Combined stocks with their latest feed data */
+  /** Combined stocks with their latest feed data and daily buy rate change */
   readonly stocksWithFeeds = computed<StockWithLatestFeed[]>(() => {
     const stocks = this.stockService.stocks();
     const feedsMap = this.feedService.latestFeedsByStock();
+    const feedHistoryMap = this.feedService.feedHistoryByStock();
 
-    return stocks.map((stock) => ({
-      stock,
-      latestFeed: feedsMap.get(stock.Id) ?? null,
-    }));
+    return stocks.map((stock) => {
+      const feedHistory = feedHistoryMap.get(stock.Id) ?? [];
+      return {
+        stock,
+        latestFeed: feedsMap.get(stock.Id) ?? null,
+        dailyBuyRateChange: calculateDailyBuyRateChange(feedHistory),
+      };
+    });
   });
 
   ngOnInit(): void {
@@ -82,5 +90,15 @@ export class StocksListComponent implements OnInit {
       return typeof value === 'number' ? value : 2;
     }
     return 2;
+  }
+
+  /**
+   * Gets the value for dynamic class calculation.
+   */
+  getClassValue(item: StockWithLatestFeed, column: TableColumn<StockWithLatestFeed>): unknown {
+    if (!column.classValueField) {
+      return null;
+    }
+    return getNestedValue(item, column.classValueField);
   }
 }

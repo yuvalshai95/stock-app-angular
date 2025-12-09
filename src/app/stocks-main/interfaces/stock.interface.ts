@@ -110,10 +110,10 @@ export interface NormalizedFeed {
 }
 
 /**
- * Stock with its most recent feed data for the main screen.
+ * Stock with its most recent feed data and calculated metrics for the main screen.
  *
  * @example
- * // Stock with latest feed data
+ * // Stock with latest feed data and daily change
  * const stockWithFeed: StockWithLatestFeed = {
  *   stock: {
  *     Id: 1,
@@ -126,7 +126,8 @@ export interface NormalizedFeed {
  *     sellPrice: 142.45,
  *     stockId: 1,
  *     timestamp: new Date('2024-01-15T10:30:45.123Z')
- *   }
+ *   },
+ *   dailyBuyRateChange: 2.5  // 2.5% increase from first feed to latest
  * };
  *
  * @example
@@ -138,7 +139,16 @@ export interface NormalizedFeed {
  *     Symbol: 'AAPL',
  *     PrecisionDigit: 3
  *   },
- *   latestFeed: null
+ *   latestFeed: null,
+ *   dailyBuyRateChange: 0  // No feeds, defaults to 0
+ * };
+ *
+ * @example
+ * // Stock with only one feed (no change)
+ * const singleFeed: StockWithLatestFeed = {
+ *   stock: { Id: 3, Name: 'Amazon', Symbol: 'AMZN', PrecisionDigit: 1 },
+ *   latestFeed: { buyPrice: 100, sellPrice: 99.5, stockId: 3, timestamp: new Date() },
+ *   dailyBuyRateChange: 0  // Only one feed, so 0% change
  * };
  */
 export interface StockWithLatestFeed {
@@ -146,6 +156,12 @@ export interface StockWithLatestFeed {
   stock: Stock;
   /** Most recent feed for this stock, or null if no feed received yet */
   latestFeed: NormalizedFeed | null;
+  /**
+   * Percentage change in buy rate from first known feed to latest feed.
+   * Formula: ((latestBuyPrice - firstBuyPrice) / firstBuyPrice) * 100
+   * Returns 0 if only one feed exists or if prices are invalid.
+   */
+  dailyBuyRateChange: number;
 }
 
 /**

@@ -35,4 +35,12 @@ export const STOCKS_LIST_COLUMNS: TableColumn<StockWithLatestFeed>[] = [
     pipe: 'formatPrice',
     pipeArgField: 'stock.PrecisionDigit',
   },
+  {
+    key: 'dailyBuyRateChange',
+    header: 'Daily Buy Rate Change',
+    field: 'dailyBuyRateChange',
+    pipe: 'formatPercent',
+    hasDynamicClass: true,
+    classValueField: 'dailyBuyRateChange',
+  },
 ];
