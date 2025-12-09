@@ -1,0 +1,67 @@
+<div class="header">
+  <p-button
+    label="Back to Stocks"
+    icon="pi pi-arrow-left"
+    [text]="true"
+    (onClick)="goBack()"
+  />
+  @if (stock(); as currentStock) {
+    <h1>{{ currentStock.Name }} ({{ currentStock.Symbol }})</h1>
+  }
+</div>
+
+@if (stock()) {
+  <p-table
+    [value]="feedsWithCalculations()"
+    [tableStyle]="{ 'min-width': '50rem' }"
+    [scrollable]="true"
+    scrollHeight="70vh"
+  >
+    <ng-template #header>
+      <tr>
+        @for (column of columns; track column.key) {
+          <th scope="col">{{ column.header }}</th>
+        }
+      </tr>
+    </ng-template>
+    <ng-template #body let-item let-rowIndex="rowIndex">
+      <tr>
+        @for (column of columns; track column.key) {
+          @if (column.hasDynamicClass) {
+            <td
+              [class.positive]="(getClassValue(item, column) | changeClass) === 'positive'"
+              [class.negative]="(getClassValue(item, column) | changeClass) === 'negative'"
+              [class.neutral]="(getClassValue(item, column) | changeClass) === 'neutral'"
+            >
+              @if (column.pipe === 'formatPercent') {
+                {{ getValue(item, column.field, rowIndex) | formatPercent }}
+              } @else {
+                {{ getValue(item, column.field, rowIndex) }}
+              }
+            </td>
+          } @else {
+            <td>
+              @if (column.pipe === 'formatPrice') {
+                {{ getValue(item, column.field, rowIndex) | formatPrice: precision() }}
+              } @else if (column.pipe === 'formatPercent') {
+                {{ getValue(item, column.field, rowIndex) | formatPercent }}
+              } @else if (column.pipe === 'formatTimestamp') {
+                {{ getValue(item, column.field, rowIndex) | formatTimestamp }}
+              } @else {
+                {{ getValue(item, column.field, rowIndex) }}
+              }
+            </td>
+          }
+        }
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td [attr.colspan]="columns.length">Waiting for feed data...</td>
+      </tr>
+    </ng-template>
+  </p-table>
+  <p class="feed-count">Showing {{ feedsWithCalculations().length }} of 100 feeds</p>
+} @else {
+  <p>Stock not found. Please go back and select a valid stock.</p>
+}

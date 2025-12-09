@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx ng serve:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(for i in 1 2 3 4 5)",
+      "Bash(do curl -s \"http://34.159.211.193/api/feeds?ids=1\")",
+      "Bash(done)"
+    ]
+  }
+}

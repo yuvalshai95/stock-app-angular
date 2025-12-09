@@ -1,0 +1,35 @@
+:host {
+  display: block;
+  padding: 1rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  margin: 0;
+}
+
+.feed-count {
+  margin-top: 0.5rem;
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.positive {
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.negative {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.neutral {
+  color: #666;
+}

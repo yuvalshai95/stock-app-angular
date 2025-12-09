@@ -1,0 +1,38 @@
+<h1>Stocks</h1>
+
+<p-table
+  [value]="stocksWithFeeds()"
+  [tableStyle]="{ 'min-width': '50rem' }"
+  selectionMode="single"
+  dataKey="stock.Id"
+  (onRowSelect)="onRowSelect($event)"
+  [rowsPerPageOptions]="[10, 25, 50]"
+  [paginator]="true"
+  [rows]="10"
+>
+  <ng-template #header>
+    <tr>
+      @for (column of columns; track column.key) {
+        <th scope="col">{{ column.header }}</th>
+      }
+    </tr>
+  </ng-template>
+  <ng-template #body let-item>
+    <tr [pSelectableRow]="item">
+      @for (column of columns; track column.key) {
+        <td>
+          @if (column.pipe === 'formatPrice') {
+            {{ getValue(item, column.field) | formatPrice: getPipeArg(item, column) }}
+          } @else {
+            {{ getValue(item, column.field) }}
+          }
+        </td>
+      }
+    </tr>
+  </ng-template>
+  <ng-template #emptymessage>
+    <tr>
+      <td [attr.colspan]="columns.length">Loading stocks...</td>
+    </tr>
+  </ng-template>
+</p-table>
