@@ -38,6 +38,7 @@
               } @else {
                 {{ getValue(item, column.field, rowIndex) }}
               }
+              <span class="direction-arrow">{{ getValueArrow(item, column) }}</span>
             </td>
           } @else {
             <td>

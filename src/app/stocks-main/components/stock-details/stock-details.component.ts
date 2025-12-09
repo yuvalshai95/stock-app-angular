@@ -119,4 +119,23 @@ export class StockDetailsComponent implements OnInit {
     }
     return getNestedValue(item, column.classValueField);
   }
+
+  /**
+   * Gets the arrow character based on the class value (numeric).
+   * Positive value = up arrow, negative value = down arrow, zero/null = no arrow.
+   *
+   * @param item - The row data
+   * @param column - The column configuration
+   * @returns Arrow character: '▲' for positive, '▼' for negative, '' for zero/null
+   */
+  getValueArrow(item: FeedWithCalculations, column: TableColumn<FeedWithCalculations>): string {
+    if (!column.classValueField) {
+      return '';
+    }
+    const value = getNestedValue(item, column.classValueField);
+    if (typeof value !== 'number' || value === 0) {
+      return '';
+    }
+    return value > 0 ? '▲' : '▼';
+  }
 }

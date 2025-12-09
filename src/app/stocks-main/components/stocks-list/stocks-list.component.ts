@@ -33,18 +33,22 @@ export class StocksListComponent implements OnInit {
   /** Table column configuration */
   readonly columns: TableColumn<StockWithLatestFeed>[] = STOCKS_LIST_COLUMNS;
 
-  /** Combined stocks with their latest feed data and daily buy rate change */
+  /** Combined stocks with their latest feed data, rate directions, and daily buy rate change */
   readonly stocksWithFeeds = computed<StockWithLatestFeed[]>(() => {
     const stocks = this.stockService.stocks();
     const feedsMap = this.feedService.latestFeedsByStock();
     const feedHistoryMap = this.feedService.feedHistoryByStock();
+    const rateDirectionsMap = this.feedService.rateDirectionsByStock();
 
     return stocks.map((stock) => {
       const feedHistory = feedHistoryMap.get(stock.Id) ?? [];
+      const rateDirections = rateDirectionsMap.get(stock.Id);
       return {
         stock,
         latestFeed: feedsMap.get(stock.Id) ?? null,
         dailyBuyRateChange: calculateDailyBuyRateChange(feedHistory),
+        buyRateDirection: rateDirections?.buyRateDirection ?? 'neutral',
+        sellRateDirection: rateDirections?.sellRateDirection ?? 'neutral',
       };
     });
   });
@@ -100,5 +104,40 @@ export class StocksListComponent implements OnInit {
       return null;
     }
     return getNestedValue(item, column.classValueField);
+  }
+
+  /**
+   * Gets the CSS class based on direction field value.
+   * Maps 'up' -> 'positive', 'down' -> 'negative', 'neutral' -> 'neutral'
+   *
+   * @param item - The row data
+   * @param column - The column configuration
+   * @returns CSS class name: 'positive', 'negative', or 'neutral'
+   */
+  getDirectionClass(item: StockWithLatestFeed, column: TableColumn<StockWithLatestFeed>): string {
+    if (!column.directionField) {
+      return 'neutral';
+    }
+    const direction = getNestedValue(item, column.directionField);
+    if (direction === 'up') return 'positive';
+    if (direction === 'down') return 'negative';
+    return 'neutral';
+  }
+
+  /**
+   * Gets the arrow character based on direction field value.
+   *
+   * @param item - The row data
+   * @param column - The column configuration
+   * @returns Arrow character: '▲' for up, '▼' for down, '' for neutral
+   */
+  getDirectionArrow(item: StockWithLatestFeed, column: TableColumn<StockWithLatestFeed>): string {
+    if (!column.directionField) {
+      return '';
+    }
+    const direction = getNestedValue(item, column.directionField);
+    if (direction === 'up') return '▲';
+    if (direction === 'down') return '▼';
+    return '';
   }
 }

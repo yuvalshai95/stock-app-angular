@@ -32,6 +32,19 @@
               {{ getValue(item, column.field) }}
             }
           </td>
+        } @else if (column.directionField) {
+          <td
+            [class.positive]="getDirectionClass(item, column) === 'positive'"
+            [class.negative]="getDirectionClass(item, column) === 'negative'"
+            [class.neutral]="getDirectionClass(item, column) === 'neutral'"
+          >
+            @if (column.pipe === 'formatPrice') {
+              {{ getValue(item, column.field) | formatPrice: getPipeArg(item, column) }}
+            } @else {
+              {{ getValue(item, column.field) }}
+            }
+            <span class="direction-arrow">{{ getDirectionArrow(item, column) }}</span>
+          </td>
         } @else {
           <td>
             @if (column.pipe === 'formatPrice') {

@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { interval, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { MAX_FEED_HISTORY, POLLING_INTERVAL_MS } from '../constant/feed.config';
-import { Feed, FeedsResponse, NormalizedFeed } from '../interfaces/stock.interface';
+import { Feed, FeedsResponse, NormalizedFeed, RateChangeDirection } from '../interfaces/stock.interface';
 import { parsePrice } from '../utils/feed-calculations';
 import { FeedApiService } from './feed-api.service';
 
@@ -11,6 +11,17 @@ import { FeedApiService } from './feed-api.service';
  * - 'single': Polling single stock (details screen) - only that stock's history grows
  */
 type PollingMode = 'all' | 'single';
+
+/**
+ * Tracks rate change direction for buy and sell rates per stock.
+ *
+ * @example
+ * // { buyRateDirection: 'up', sellRateDirection: 'down' }
+ */
+export interface RateDirections {
+  buyRateDirection: RateChangeDirection;
+  sellRateDirection: RateChangeDirection;
+}
 
 /**
  * Facade service responsible for managing feed state, polling, and business logic.
@@ -69,6 +80,16 @@ export class FeedService {
    */
   private readonly _lastUpdate = signal<Date | null>(null);
   readonly lastUpdate = this._lastUpdate.asReadonly();
+
+  /**
+   * Rate change directions per stock (comparing current vs previous feed).
+   * Maps stock ID to buy/sell rate directions.
+   *
+   * @example
+   * // Map { 1 => { buyRateDirection: 'up', sellRateDirection: 'down' }, ... }
+   */
+  private readonly _rateDirectionsByStock = signal<Map<number, RateDirections>>(new Map());
+  readonly rateDirectionsByStock = this._rateDirectionsByStock.asReadonly();
 
   /** Subject to signal polling stop */
   private stopPolling$ = new Subject<void>();
@@ -229,7 +250,7 @@ export class FeedService {
   }
 
   /**
-   * Clears all feed history.
+   * Clears all feed history and rate directions.
    * Used when user logs out or app resets.
    *
    * @example
@@ -238,11 +259,12 @@ export class FeedService {
   clearAllFeedHistory(): void {
     this._feedHistoryByStock.set(new Map());
     this._latestFeedsByStock.set(new Map());
+    this._rateDirectionsByStock.set(new Map());
   }
 
   /**
    * Processes incoming feeds response and updates state.
-   * Updates both latest feeds map and feed history.
+   * Updates latest feeds map, feed history, and rate directions.
    *
    * @param response - The API response containing feeds and timestamp
    */
@@ -252,6 +274,15 @@ export class FeedService {
 
     response.Feeds.forEach((feed) => {
       const normalized = this.normalizeFeed(feed, timestamp);
+      const previousFeed = this._latestFeedsByStock().get(feed.StockId);
+
+      // Calculate rate directions by comparing with previous feed
+      const rateDirections = this.calculateRateDirections(normalized, previousFeed);
+      this._rateDirectionsByStock.update((map) => {
+        const newMap = new Map(map);
+        newMap.set(feed.StockId, rateDirections);
+        return newMap;
+      });
 
       // Update latest feed for this stock
       this._latestFeedsByStock.update((map) => {
@@ -277,6 +308,62 @@ export class FeedService {
         return newMap;
       });
     });
+  }
+
+  /**
+   * Calculates the rate change directions by comparing current and previous feeds.
+   *
+   * @param current - The current normalized feed
+   * @param previous - The previous normalized feed, or undefined if first feed
+   * @returns Object with buy and sell rate directions
+   *
+   * @example
+   * // Price went up
+   * calculateRateDirections(
+   *   { buyPrice: 110, sellPrice: 109, ... },
+   *   { buyPrice: 100, sellPrice: 99, ... }
+   * )
+   * // Returns: { buyRateDirection: 'up', sellRateDirection: 'up' }
+   *
+   * // First feed (no previous)
+   * calculateRateDirections({ buyPrice: 100, ... }, undefined)
+   * // Returns: { buyRateDirection: 'neutral', sellRateDirection: 'neutral' }
+   */
+  private calculateRateDirections(
+    current: NormalizedFeed,
+    previous: NormalizedFeed | undefined
+  ): RateDirections {
+    return {
+      buyRateDirection: this.getDirection(current.buyPrice, previous?.buyPrice),
+      sellRateDirection: this.getDirection(current.sellPrice, previous?.sellPrice),
+    };
+  }
+
+  /**
+   * Determines the direction of change between two values.
+   *
+   * @param current - The current value
+   * @param previous - The previous value
+   * @returns 'up' if current > previous, 'down' if current < previous, 'neutral' otherwise
+   *
+   * @example
+   * getDirection(110, 100)  // Returns: 'up'
+   * getDirection(90, 100)   // Returns: 'down'
+   * getDirection(100, 100)  // Returns: 'neutral'
+   * getDirection(100, null) // Returns: 'neutral'
+   * getDirection(null, 100) // Returns: 'neutral'
+   */
+  private getDirection(
+    current: number | null | undefined,
+    previous: number | null | undefined
+  ): RateChangeDirection {
+    if (current === null || current === undefined ||
+        previous === null || previous === undefined) {
+      return 'neutral';
+    }
+    if (current > previous) return 'up';
+    if (current < previous) return 'down';
+    return 'neutral';
   }
 
   /**

@@ -27,6 +27,7 @@ export const STOCKS_LIST_COLUMNS: TableColumn<StockWithLatestFeed>[] = [
     field: 'latestFeed.buyPrice',
     pipe: 'formatPrice',
     pipeArgField: 'stock.PrecisionDigit',
+    directionField: 'buyRateDirection',
   },
   {
     key: 'sellRate',
@@ -34,6 +35,7 @@ export const STOCKS_LIST_COLUMNS: TableColumn<StockWithLatestFeed>[] = [
     field: 'latestFeed.sellPrice',
     pipe: 'formatPrice',
     pipeArgField: 'stock.PrecisionDigit',
+    directionField: 'sellRateDirection',
   },
   {
     key: 'dailyBuyRateChange',

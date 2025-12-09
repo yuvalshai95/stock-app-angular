@@ -120,4 +120,14 @@ export interface TableColumn<T = unknown> {
    * @example 'sellRateChangePercent' - Positive values get 'positive' class
    */
   classValueField?: string;
+
+  /**
+   * Field path to get the direction value for CSS class.
+   * Unlike classValueField (which uses changeClass pipe on numbers),
+   * this field should already contain 'up', 'down', or 'neutral' string.
+   * Maps to: 'up' -> 'positive', 'down' -> 'negative', 'neutral' -> 'neutral'
+   *
+   * @example 'buyRateDirection' - Gets direction string directly from data
+   */
+  directionField?: string;
 }

@@ -162,6 +162,16 @@ export interface StockWithLatestFeed {
    * Returns 0 if only one feed exists or if prices are invalid.
    */
   dailyBuyRateChange: number;
+  /**
+   * Direction of buy rate change compared to previous feed.
+   * 'up' = price increased, 'down' = price decreased, 'neutral' = no change or first feed
+   */
+  buyRateDirection: RateChangeDirection;
+  /**
+   * Direction of sell rate change compared to previous feed.
+   * 'up' = price increased, 'down' = price decreased, 'neutral' = no change or first feed
+   */
+  sellRateDirection: RateChangeDirection;
 }
 
 /**
@@ -214,3 +224,21 @@ export interface FeedWithCalculations {
   /** Percentage change from previous sell rate, null if no previous feed or invalid prices */
   sellRateChangePercent: number | null;
 }
+
+/**
+ * Direction of rate change compared to previous value.
+ * - 'up': Current value is higher than previous
+ * - 'down': Current value is lower than previous
+ * - 'neutral': Current value equals previous, or no previous value exists
+ *
+ * @example
+ * // Price went from 100 to 110
+ * const direction: RateChangeDirection = 'up';
+ *
+ * // Price went from 100 to 90
+ * const direction: RateChangeDirection = 'down';
+ *
+ * // Price stayed at 100, or first feed received
+ * const direction: RateChangeDirection = 'neutral';
+ */
+export type RateChangeDirection = 'up' | 'down' | 'neutral';
