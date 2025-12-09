@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { InputTextModule } from 'primeng/inputtext';
 import { TableModule, TableRowSelectEvent } from 'primeng/table';
 import { STOCKS_LIST_COLUMNS } from '../../constant/stocks-list-table.config';
 import { StockWithLatestFeed } from '../../interfaces/stock.interface';
@@ -7,6 +9,7 @@ import { TableColumn } from '../../interfaces/table-column.interface';
 import { ChangeClassPipe } from '../../pipes/change-class.pipe';
 import { FormatPercentPipe } from '../../pipes/format-percent.pipe';
 import { FormatPricePipe } from '../../pipes/format-price.pipe';
+import { HighlightSearchPipe } from '../../pipes/highlight-search.pipe';
 import { FeedService } from '../../services/feed.service';
 import { StockService } from '../../services/stock.service';
 import { calculateDailyBuyRateChange } from '../../utils/feed-calculations';
@@ -22,7 +25,7 @@ import { getNestedValue } from '../../utils/object.utils';
   templateUrl: './stocks-list.component.html',
   styleUrl: './stocks-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TableModule, FormatPricePipe, FormatPercentPipe, ChangeClassPipe],
+  imports: [TableModule, InputTextModule, FormsModule, FormatPricePipe, FormatPercentPipe, ChangeClassPipe, HighlightSearchPipe],
 })
 export class StocksListComponent implements OnInit {
   private readonly stockService = inject(StockService);
@@ -33,8 +36,11 @@ export class StocksListComponent implements OnInit {
   /** Table column configuration */
   readonly columns: TableColumn<StockWithLatestFeed>[] = STOCKS_LIST_COLUMNS;
 
+  /** Search term for filtering stocks */
+  readonly searchTerm = signal('');
+
   /** Combined stocks with their latest feed data, rate directions, and daily buy rate change */
-  readonly stocksWithFeeds = computed<StockWithLatestFeed[]>(() => {
+  private readonly stocksWithFeeds = computed<StockWithLatestFeed[]>(() => {
     const stocks = this.stockService.stocks();
     const feedsMap = this.feedService.latestFeedsByStock();
     const feedHistoryMap = this.feedService.feedHistoryByStock();
@@ -50,6 +56,22 @@ export class StocksListComponent implements OnInit {
         buyRateDirection: rateDirections?.buyRateDirection ?? 'neutral',
         sellRateDirection: rateDirections?.sellRateDirection ?? 'neutral',
       };
+    });
+  });
+
+  /** Filtered stocks based on search term (case-insensitive contains match on name or symbol) */
+  readonly filteredStocks = computed<StockWithLatestFeed[]>(() => {
+    const stocks = this.stocksWithFeeds();
+    const term = this.searchTerm().trim().toLowerCase();
+
+    if (!term) {
+      return stocks;
+    }
+
+    return stocks.filter((item) => {
+      const name = item.stock.Name.toLowerCase();
+      const symbol = item.stock.Symbol.toLowerCase();
+      return name.includes(term) || symbol.includes(term);
     });
   });
 

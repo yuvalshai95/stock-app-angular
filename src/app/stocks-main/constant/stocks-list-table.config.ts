@@ -15,11 +15,13 @@ export const STOCKS_LIST_COLUMNS: TableColumn<StockWithLatestFeed>[] = [
     key: 'name',
     header: 'Name',
     field: 'stock.Name',
+    highlightSearch: true,
   },
   {
     key: 'symbol',
     header: 'Symbol',
     field: 'stock.Symbol',
+    highlightSearch: true,
   },
   {
     key: 'buyRate',

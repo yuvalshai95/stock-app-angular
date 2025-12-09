@@ -20,6 +20,10 @@ h1 {
   font-size: 0.875rem;
 }
 
+::ng-deep .p-datatable-table-container {
+  min-height: 70vh;
+}
+
 .positive {
   color: #22c55e;
   font-weight: 500;

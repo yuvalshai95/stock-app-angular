@@ -7,6 +7,15 @@ h1 {
   margin-bottom: 1rem;
 }
 
+.search-container {
+  margin-bottom: 1rem;
+
+  input {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
 .positive {
   color: #22c55e;
   font-weight: 500;

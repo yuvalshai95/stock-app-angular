@@ -130,4 +130,12 @@ export interface TableColumn<T = unknown> {
    * @example 'buyRateDirection' - Gets direction string directly from data
    */
   directionField?: string;
+
+  /**
+   * Whether this column should highlight search terms.
+   * When true, the highlightSearch pipe is applied to wrap matches in <strong> tags.
+   *
+   * @example true - Apply search term highlighting
+   */
+  highlightSearch?: boolean;
 }

@@ -1,7 +1,18 @@
 <h1>Stocks</h1>
 
+<div class="search-container">
+  <input
+    pInputText
+    type="text"
+    placeholder="Search by name or symbol..."
+    [ngModel]="searchTerm()"
+    (ngModelChange)="searchTerm.set($event)"
+    aria-label="Search stocks by name or symbol"
+  />
+</div>
+
 <p-table
-  [value]="stocksWithFeeds()"
+  [value]="filteredStocks()"
   [tableStyle]="{ 'min-width': '50rem' }"
   selectionMode="single"
   dataKey="stock.Id"
@@ -45,6 +56,8 @@
             }
             <span class="direction-arrow">{{ getDirectionArrow(item, column) }}</span>
           </td>
+        } @else if (column.highlightSearch) {
+          <td [innerHTML]="getValue(item, column.field) | highlightSearch: searchTerm()"></td>
         } @else {
           <td>
             @if (column.pipe === 'formatPrice') {
@@ -61,7 +74,11 @@
   </ng-template>
   <ng-template #emptymessage>
     <tr>
-      <td [attr.colspan]="columns.length">Loading stocks...</td>
+      @if (searchTerm()) {
+        <td [attr.colspan]="columns.length">No results found for "{{ searchTerm() }}"</td>
+      } @else {
+        <td [attr.colspan]="columns.length">Loading stocks...</td>
+      }
     </tr>
   </ng-template>
 </p-table>
