@@ -16,6 +16,10 @@ import { getNestedValue } from '../../utils/object.utils';
 
 /**
  * Stock details screen showing the last 100 feeds for a selected stock.
+ *
+ * Feed history is already accumulated from the main screen polling.
+ * This component switches to single-stock polling for efficiency,
+ * preserving existing history and continuing to grow it.
  */
 @Component({
   selector: 'app-stock-details',
@@ -54,7 +58,7 @@ export class StockDetailsComponent implements OnInit {
   /** Precision digits for price formatting */
   readonly precision = computed(() => this.stock()?.PrecisionDigit ?? 2);
 
-  /** Feed history for this stock */
+  /** Feed history for this stock - already populated from main screen */
   private readonly feedHistory = computed(() => {
     const id = this.stockId();
     if (id === null) return [];
@@ -73,12 +77,14 @@ export class StockDetailsComponent implements OnInit {
     this.stockId.set(id);
 
     if (id !== null) {
+      // Fetch stocks if not already loaded (e.g., direct URL navigation)
       if (this.stockService.stocks().length === 0) {
-        this.stockService.fetchStocks();
+        this.stockService.fetchStocks().subscribe();
       }
 
-      this.feedService.clearFeedHistory(id);
-      this.feedService.startPollingStockFeeds(id);
+      // Switch to single-stock polling for efficiency
+      // Existing feed history is preserved and continues to grow
+      this.feedService.switchToSingleStockPolling(id);
     }
 
     this.destroyRef.onDestroy(() => {

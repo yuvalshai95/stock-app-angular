@@ -6,26 +6,33 @@ import { parsePrice } from '../utils/feed-calculations';
 import { FeedApiService } from './feed-api.service';
 
 /**
+ * Polling mode determines which stocks are being polled.
+ * - 'all': Polling all stocks (main screen) - accumulates history for all
+ * - 'single': Polling single stock (details screen) - only that stock's history grows
+ */
+type PollingMode = 'all' | 'single';
+
+/**
  * Facade service responsible for managing feed state, polling, and business logic.
- * Delegates HTTP operations to FeedApiService.
  *
  * This service acts as the "brain" for feed-related operations:
- * - Manages polling lifecycle (start/stop)
+ * - Manages polling lifecycle (start/stop/switch modes)
  * - Caches latest feeds per stock for the main screen
  * - Maintains feed history (max 100 entries) per stock for details screen
- * - Normalizes raw feed data from API
+ * - Accumulates history for ALL stocks on main screen
+ * - Switches to single-stock polling on details screen for efficiency
  *
  * @example
- * // Start polling all feeds (main screen):
- * feedService.startPollingAllFeeds();
- * const latestFeeds = feedService.latestFeedsByStock(); // Signal<Map<number, NormalizedFeed>>
+ * // Main screen - start polling all stocks:
+ * feedService.startPollingAllStocks([1, 2, 3, 4, 5]);
+ * // History accumulates for all stocks
  *
- * // Start polling single stock (details screen):
- * feedService.startPollingStockFeeds(1);
- * const history = feedService.feedHistoryByStock().get(1); // NormalizedFeed[]
+ * // Navigate to details - switch to single stock polling:
+ * feedService.switchToSingleStockPolling(1);
+ * // Existing history preserved, only stock 1 continues growing
  *
- * // Stop polling on component destroy:
- * feedService.stopPolling();
+ * // Navigate back to main - resume all stocks polling:
+ * feedService.startPollingAllStocks([1, 2, 3, 4, 5]);
  */
 @Injectable({
   providedIn: 'root',
@@ -34,7 +41,7 @@ export class FeedService {
   private readonly feedApiService = inject(FeedApiService);
 
   /**
-   * Latest feed for each stock (for main screen).
+   * Latest feed for each stock (for main screen display).
    * Maps stock ID to its most recent normalized feed.
    *
    * @example
@@ -44,8 +51,9 @@ export class FeedService {
   readonly latestFeedsByStock = this._latestFeedsByStock.asReadonly();
 
   /**
-   * Feed history per stock (for details screen) - newest first.
+   * Feed history per stock - newest first.
    * Each stock maintains up to MAX_FEED_HISTORY (100) entries.
+   * History accumulates for all stocks while on main screen.
    *
    * @example
    * // Map { 1 => [{ buyPrice: 150.30, ... }, { buyPrice: 150.25, ... }, ...], ... }
@@ -65,27 +73,36 @@ export class FeedService {
   /** Subject to signal polling stop */
   private stopPolling$ = new Subject<void>();
 
-  /** Flag to prevent multiple polling instances */
-  private isPolling = false;
+  /** Current polling mode */
+  private pollingMode: PollingMode | null = null;
 
   /**
-   * Starts polling for all stocks feeds (used on main screen).
-   * Fetches immediately, then every POLLING_INTERVAL_MS (1 second).
+   * Starts polling for all stocks (used on main screen).
+   * Accumulates feed history for ALL stocks simultaneously.
+   * If already polling single stock, stops and restarts with all stocks.
+   *
+   * @param stockIds - Array of all stock IDs to poll
    *
    * @example
-   * // In component ngOnInit:
-   * this.feedService.startPollingAllFeeds();
+   * // In stocks-list component ngOnInit:
+   * const stockIds = stocks.map(s => s.Id); // [1, 2, 3, 4, 5, ...]
+   * this.feedService.startPollingAllStocks(stockIds);
    *
-   * // Feeds are automatically updated every second:
-   * // feedService.latestFeedsByStock() => Map { 1 => {...}, 2 => {...}, ... }
+   * // All stocks' histories grow simultaneously:
+   * // feedService.feedHistoryByStock().get(1) => [feed1, feed2, ...]
+   * // feedService.feedHistoryByStock().get(2) => [feed1, feed2, ...]
    */
-  startPollingAllFeeds(): void {
-    if (this.isPolling) return;
-    this.isPolling = true;
+  startPollingAllStocks(stockIds: number[]): void {
+    if (stockIds.length === 0) return;
+
+    // Stop any existing polling
+    this.stopPolling();
+
+    this.pollingMode = 'all';
 
     // Initial fetch
     this.feedApiService
-      .getAllFeeds()
+      .getFeedsByIds(stockIds)
       .pipe(tap((response) => this.processFeeds(response)))
       .subscribe();
 
@@ -93,32 +110,37 @@ export class FeedService {
     interval(POLLING_INTERVAL_MS)
       .pipe(
         takeUntil(this.stopPolling$),
-        switchMap(() => this.feedApiService.getAllFeeds()),
+        switchMap(() => this.feedApiService.getFeedsByIds(stockIds)),
         tap((response) => this.processFeeds(response))
       )
       .subscribe();
   }
 
   /**
-   * Starts polling for a specific stock's feeds (used on details screen).
-   * Fetches immediately, then every POLLING_INTERVAL_MS (1 second).
+   * Switches to single-stock polling (used on details screen).
+   * Preserves existing feed history - only the specified stock's history continues to grow.
+   * Other stocks' histories are paused but preserved.
    *
-   * @param stockId - The stock ID to poll feeds for
+   * @param stockId - The stock ID to poll
    *
    * @example
-   * // In stock details component ngOnInit:
-   * this.feedService.startPollingStockFeeds(1);
+   * // User navigates from main screen to stock 1 details:
+   * // Existing history: stock 1 has 45 feeds, stock 2 has 45 feeds
+   * feedService.switchToSingleStockPolling(1);
    *
-   * // Feed history builds up over time:
-   * // feedService.feedHistoryByStock().get(1) => [newest, ..., oldest] (max 100)
+   * // After 10 more seconds:
+   * // stock 1 has 55 feeds (still growing)
+   * // stock 2 has 45 feeds (paused, preserved)
    */
-  startPollingStockFeeds(stockId: number): void {
-    if (this.isPolling) return;
-    this.isPolling = true;
+  switchToSingleStockPolling(stockId: number): void {
+    // Stop any existing polling
+    this.stopPolling();
+
+    this.pollingMode = 'single';
 
     // Initial fetch
     this.feedApiService
-      .getFeedsByStockId(stockId)
+      .getFeedsByIds([stockId])
       .pipe(tap((response) => this.processFeeds(response)))
       .subscribe();
 
@@ -126,7 +148,7 @@ export class FeedService {
     interval(POLLING_INTERVAL_MS)
       .pipe(
         takeUntil(this.stopPolling$),
-        switchMap(() => this.feedApiService.getFeedsByStockId(stockId)),
+        switchMap(() => this.feedApiService.getFeedsByIds([stockId])),
         tap((response) => this.processFeeds(response))
       )
       .subscribe();
@@ -134,7 +156,7 @@ export class FeedService {
 
   /**
    * Stops any active polling.
-   * Should be called in component ngOnDestroy.
+   * Does NOT clear feed history - data is preserved for when polling resumes.
    *
    * @example
    * // In component:
@@ -144,7 +166,36 @@ export class FeedService {
    */
   stopPolling(): void {
     this.stopPolling$.next();
-    this.isPolling = false;
+    this.stopPolling$ = new Subject<void>();
+    this.pollingMode = null;
+  }
+
+  /**
+   * Gets the current polling mode.
+   *
+   * @returns Current polling mode or null if not polling
+   *
+   * @example
+   * // On main screen:
+   * feedService.getPollingMode(); // 'all'
+   *
+   * // On details screen:
+   * feedService.getPollingMode(); // 'single'
+   *
+   * // Not polling:
+   * feedService.getPollingMode(); // null
+   */
+  getPollingMode(): PollingMode | null {
+    return this.pollingMode;
+  }
+
+  /**
+   * Checks if currently polling.
+   *
+   * @returns true if polling is active
+   */
+  isPollingActive(): boolean {
+    return this.pollingMode !== null;
   }
 
   /**
@@ -178,22 +229,15 @@ export class FeedService {
   }
 
   /**
-   * Clears feed history for a specific stock.
-   * Used when navigating to stock details to start fresh.
-   *
-   * @param stockId - The stock ID to clear history for
+   * Clears all feed history.
+   * Used when user logs out or app resets.
    *
    * @example
-   * // Clear history before starting new polling session:
-   * feedService.clearFeedHistory(1);
-   * feedService.startPollingStockFeeds(1);
+   * feedService.clearAllFeedHistory();
    */
-  clearFeedHistory(stockId: number): void {
-    this._feedHistoryByStock.update((map) => {
-      const newMap = new Map(map);
-      newMap.delete(stockId);
-      return newMap;
-    });
+  clearAllFeedHistory(): void {
+    this._feedHistoryByStock.set(new Map());
+    this._latestFeedsByStock.set(new Map());
   }
 
   /**

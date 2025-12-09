@@ -1,5 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { tap } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { Stock } from '../interfaces/stock.interface';
 import { StockApiService } from './stock-api.service';
 
@@ -14,7 +14,7 @@ import { StockApiService } from './stock-api.service';
  *
  * @example
  * // Fetching and accessing stocks:
- * stockService.fetchStocks();
+ * stockService.fetchStocks().subscribe();
  * const allStocks = stockService.stocks(); // Signal<Stock[]>
  * const apple = stockService.getStockById(1); // Stock | undefined
  */
@@ -46,28 +46,30 @@ export class StockService {
 
   /**
    * Fetches all stocks from the API and caches them.
-   * Updates both the stocks array and the lookup map.
+   * Returns an Observable so consumers can chain operations after fetch completes.
+   *
+   * @returns Observable of fetched stocks
    *
    * @example
-   * // Trigger fetch:
-   * stockService.fetchStocks();
+   * // Fetch stocks and start polling after:
+   * stockService.fetchStocks().subscribe(stocks => {
+   *   const ids = stocks.map(s => s.Id);
+   *   feedService.startPollingAllStocks(ids);
+   * });
    *
    * // After completion, signals are updated:
    * // stockService.stocks() => [{ Id: 1, ... }, { Id: 2, ... }]
    * // stockService.stocksMap() => Map { 1 => {...}, 2 => {...} }
    */
-  fetchStocks(): void {
-    this.stockApiService
-      .getStocks()
-      .pipe(
-        tap((stocks: Stock[]) => {
-          this._stocks.set(stocks);
-          const map = new Map<number, Stock>();
-          stocks.forEach((stock: Stock) => map.set(stock.Id, stock));
-          this._stocksMap.set(map);
-        })
-      )
-      .subscribe();
+  fetchStocks(): Observable<Stock[]> {
+    return this.stockApiService.getStocks().pipe(
+      tap((stocks: Stock[]) => {
+        this._stocks.set(stocks);
+        const map = new Map<number, Stock>();
+        stocks.forEach((stock: Stock) => map.set(stock.Id, stock));
+        this._stocksMap.set(map);
+      })
+    );
   }
 
   /**

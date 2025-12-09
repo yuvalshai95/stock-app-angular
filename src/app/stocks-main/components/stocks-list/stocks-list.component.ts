@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { TableModule, TableRowSelectEvent } from 'primeng/table';
 import { STOCKS_LIST_COLUMNS } from '../../constant/stocks-list-table.config';
@@ -12,6 +11,8 @@ import { getNestedValue } from '../../utils/object.utils';
 
 /**
  * Main screen component displaying a list of stocks with their latest rates.
+ * Starts polling for ALL stocks on init, accumulating feed history for each.
+ * When user navigates to details, history is already available.
  */
 @Component({
   selector: 'app-stocks-list',
@@ -41,8 +42,11 @@ export class StocksListComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    this.stockService.fetchStocks();
-    this.feedService.startPollingAllFeeds();
+    // Fetch stocks first, then start polling with all stock IDs
+    this.stockService.fetchStocks().subscribe((stocks) => {
+      const stockIds = stocks.map((stock) => stock.Id);
+      this.feedService.startPollingAllStocks(stockIds);
+    });
 
     this.destroyRef.onDestroy(() => {
       this.feedService.stopPolling();
