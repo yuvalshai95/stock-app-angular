@@ -6,6 +6,7 @@ import { TableModule, TableRowSelectEvent } from 'primeng/table';
 import { STOCKS_LIST_COLUMNS } from '../../constant/stocks-list-table.config';
 import { StockWithLatestFeed } from '../../interfaces/stock.interface';
 import { TableColumn } from '../../interfaces/table-column.interface';
+import { RateChangeDirection } from '../../enums/rate-change-direction.enum';
 import { ChangeClassPipe } from '../../pipes/change-class.pipe';
 import { FormatPercentPipe } from '../../pipes/format-percent.pipe';
 import { FormatPricePipe } from '../../pipes/format-price.pipe';
@@ -53,8 +54,8 @@ export class StocksListComponent implements OnInit {
         stock,
         latestFeed: feedsMap.get(stock.Id) ?? null,
         dailyBuyRateChange: calculateDailyBuyRateChange(feedHistory),
-        buyRateDirection: rateDirections?.buyRateDirection ?? 'neutral',
-        sellRateDirection: rateDirections?.sellRateDirection ?? 'neutral',
+        buyRateDirection: rateDirections?.buyRateDirection ?? RateChangeDirection.NEUTRAL,
+        sellRateDirection: rateDirections?.sellRateDirection ?? RateChangeDirection.NEUTRAL,
       };
     });
   });
@@ -141,8 +142,8 @@ export class StocksListComponent implements OnInit {
       return 'neutral';
     }
     const direction = getNestedValue(item, column.directionField);
-    if (direction === 'up') return 'positive';
-    if (direction === 'down') return 'negative';
+    if (direction === RateChangeDirection.UP) return 'positive';
+    if (direction === RateChangeDirection.DOWN) return 'negative';
     return 'neutral';
   }
 
@@ -158,8 +159,8 @@ export class StocksListComponent implements OnInit {
       return '';
     }
     const direction = getNestedValue(item, column.directionField);
-    if (direction === 'up') return '▲';
-    if (direction === 'down') return '▼';
+    if (direction === RateChangeDirection.UP) return '▲';
+    if (direction === RateChangeDirection.DOWN) return '▼';
     return '';
   }
 }

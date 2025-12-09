@@ -1,50 +1,11 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { interval, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { MAX_FEED_HISTORY, POLLING_INTERVAL_MS } from '../constant/feed.config';
-import { Feed, FeedsResponse, NormalizedFeed, RateChangeDirection } from '../interfaces/stock.interface';
+import { Feed, FeedsResponse, NormalizedFeed, RateDirections } from '../interfaces/stock.interface';
+import { PollingMode } from '../enums/polling-mode.enum';
+import { RateChangeDirection } from '../enums/rate-change-direction.enum';
 import { parsePrice } from '../utils/feed-calculations';
 import { FeedApiService } from './feed-api.service';
-
-/**
- * Polling mode determines which stocks are being polled.
- * - 'all': Polling all stocks (main screen) - accumulates history for all
- * - 'single': Polling single stock (details screen) - only that stock's history grows
- */
-type PollingMode = 'all' | 'single';
-
-/**
- * Tracks rate change direction for buy and sell rates per stock.
- *
- * @example
- * // { buyRateDirection: 'up', sellRateDirection: 'down' }
- */
-export interface RateDirections {
-  buyRateDirection: RateChangeDirection;
-  sellRateDirection: RateChangeDirection;
-}
-
-/**
- * Facade service responsible for managing feed state, polling, and business logic.
- *
- * This service acts as the "brain" for feed-related operations:
- * - Manages polling lifecycle (start/stop/switch modes)
- * - Caches latest feeds per stock for the main screen
- * - Maintains feed history (max 100 entries) per stock for details screen
- * - Accumulates history for ALL stocks on main screen
- * - Switches to single-stock polling on details screen for efficiency
- *
- * @example
- * // Main screen - start polling all stocks:
- * feedService.startPollingAllStocks([1, 2, 3, 4, 5]);
- * // History accumulates for all stocks
- *
- * // Navigate to details - switch to single stock polling:
- * feedService.switchToSingleStockPolling(1);
- * // Existing history preserved, only stock 1 continues growing
- *
- * // Navigate back to main - resume all stocks polling:
- * feedService.startPollingAllStocks([1, 2, 3, 4, 5]);
- */
 @Injectable({
   providedIn: 'root',
 })
@@ -119,7 +80,7 @@ export class FeedService {
     // Stop any existing polling
     this.stopPolling();
 
-    this.pollingMode = 'all';
+    this.pollingMode = PollingMode.ALL;
 
     // Initial fetch
     this.feedApiService
@@ -157,7 +118,7 @@ export class FeedService {
     // Stop any existing polling
     this.stopPolling();
 
-    this.pollingMode = 'single';
+    this.pollingMode = PollingMode.SINGLE;
 
     // Initial fetch
     this.feedApiService
@@ -359,11 +320,11 @@ export class FeedService {
   ): RateChangeDirection {
     if (current === null || current === undefined ||
         previous === null || previous === undefined) {
-      return 'neutral';
+      return RateChangeDirection.NEUTRAL;
     }
-    if (current > previous) return 'up';
-    if (current < previous) return 'down';
-    return 'neutral';
+    if (current > previous) return RateChangeDirection.UP;
+    if (current < previous) return RateChangeDirection.DOWN;
+    return RateChangeDirection.NEUTRAL;
   }
 
   /**

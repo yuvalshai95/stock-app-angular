@@ -1,3 +1,8 @@
+import { RateChangeDirection } from '../enums/rate-change-direction.enum';
+
+// Re-export for convenience
+export { RateChangeDirection } from '../enums/rate-change-direction.enum';
+
 /**
  * Represents a stock entity from the API.
  *
@@ -226,19 +231,17 @@ export interface FeedWithCalculations {
 }
 
 /**
- * Direction of rate change compared to previous value.
- * - 'up': Current value is higher than previous
- * - 'down': Current value is lower than previous
- * - 'neutral': Current value equals previous, or no previous value exists
+ * Tracks rate change direction for buy and sell rates per stock.
  *
  * @example
- * // Price went from 100 to 110
- * const direction: RateChangeDirection = 'up';
- *
- * // Price went from 100 to 90
- * const direction: RateChangeDirection = 'down';
- *
- * // Price stayed at 100, or first feed received
- * const direction: RateChangeDirection = 'neutral';
+ * const directions: RateDirections = {
+ *   buyRateDirection: 'up',
+ *   sellRateDirection: 'down'
+ * };
  */
-export type RateChangeDirection = 'up' | 'down' | 'neutral';
+export interface RateDirections {
+  /** Direction of buy rate change compared to previous feed */
+  buyRateDirection: RateChangeDirection;
+  /** Direction of sell rate change compared to previous feed */
+  sellRateDirection: RateChangeDirection;
+}
